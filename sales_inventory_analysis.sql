@@ -3,6 +3,12 @@
 -- Date: April 22, 2025
 -- Description: This SQL query combines sales and inventory data from multiple sources (Amazon, Flipkart, etc.) to generate a unified dataset for analysis.
 
+-- Renaming tables to better reflect their purpose
+ALTER TABLE AZ_Sales_Report RENAME TO Amazon_All_Orders_Report;
+ALTER TABLE FK_Sales_Report RENAME TO Flipkart_Earnings_Report;
+ALTER TABLE amazon_pricing_data RENAME TO Amazon_Pricing_Tracker;
+ALTER TABLE fk_data RENAME TO Flipkart_Pricing_Tracker;
+
 SELECT
   "source"."brand" AS "brand",
   "source"."new_title" AS "new_title",
@@ -48,47 +54,47 @@ FROM
         (
           -- Subquery: Combine Amazon and Flipkart sales data
           SELECT
-            "public"."AZ_Sales_Report"."purchase-date" AS order_date,
-            "public"."AZ_Sales_Report"."fulfillment-channel" AS "fulfillment-channel",
-            "public"."AZ_Sales_Report"."sales-channel" AS "sales-channel",
-            "public"."AZ_Sales_Report"."sku" AS SKU,
+            "public"."Amazon_All_Orders_Report"."purchase-date" AS order_date,
+            "public"."Amazon_All_Orders_Report"."fulfillment-channel" AS "fulfillment-channel",
+            "public"."Amazon_All_Orders_Report"."sales-channel" AS "sales-channel",
+            "public"."Amazon_All_Orders_Report"."sku" AS SKU,
             CASE
-              WHEN "public"."AZ_Sales_Report"."quantity" = 0 THEN 1
-              ELSE "public"."AZ_Sales_Report"."quantity"
+              WHEN "public"."Amazon_All_Orders_Report"."quantity" = 0 THEN 1
+              ELSE "public"."Amazon_All_Orders_Report"."quantity"
             END AS gross_units,
             COALESCE(
-              "Amazon Pricing Data - Sku"."Title",
-              "public"."AZ_Sales_Report"."product-name"
+              "Amazon_Pricing_Tracker"."Title",
+              "public"."Amazon_All_Orders_Report"."product-name"
             ) AS "New Title",
-            "public"."AZ_Sales_Report"."unique_id" AS unique_id,
-            "Amazon Pricing Data - Sku"."Brand Name" AS brand,
-            "Amazon Pricing Data - Sku"."Unicommerce SKU ID" AS "Unicommerce SKU ID",
-            "public"."AZ_Sales_Report"."asin" AS "Combined_ASIN_ProductID",
+            "public"."Amazon_All_Orders_Report"."unique_id" AS unique_id,
+            "Amazon_Pricing_Tracker"."Brand Name" AS brand,
+            "Amazon_Pricing_Tracker"."Unicommerce SKU ID" AS "Unicommerce SKU ID",
+            "public"."Amazon_All_Orders_Report"."asin" AS "Combined_ASIN_ProductID",
             COALESCE(
-              "public"."AZ_Sales_Report"."item-price",
-              "Amazon Pricing Data - Sku"."Final Price"
+              "public"."Amazon_All_Orders_Report"."item-price",
+              "Amazon_Pricing_Tracker"."Final Price"
             ) AS "Combined_GMV_Gross_Price",
             'Amazon' AS "Platform"
           FROM
-            "public"."AZ_Sales_Report"
-            LEFT JOIN "public"."amazon_pricing_data" AS "Amazon Pricing Data - Sku" ON "public"."AZ_Sales_Report"."sku" = "Amazon Pricing Data - Sku"."SKU ID"
+            "public"."Amazon_All_Orders_Report"
+            LEFT JOIN "public"."Amazon_Pricing_Tracker" AS "Amazon_Pricing_Tracker" ON "public"."Amazon_All_Orders_Report"."sku" = "Amazon_Pricing_Tracker"."SKU ID"
           UNION ALL
           SELECT
-            "public"."FK_Sales_Report"."order_date" AS order_date,
+            "public"."Flipkart_Earnings_Report"."order_date" AS order_date,
             'Flipkart' AS "fulfillment-channel",
             'Flipkart' AS "sales-channel",
-            "public"."FK_Sales_Report"."sku_id" AS SKU,
-            "public"."FK_Sales_Report"."gross_units" AS gross_units,
-            "Fk Data - Sku"."Title" AS "New Title",
-            "public"."FK_Sales_Report"."unique_id" AS unique_id,
-            "public"."FK_Sales_Report"."brand" AS brand,
-            "Fk Data - Sku"."Unicommerce SKU ID" AS "Unicommerce SKU ID",
-            "public"."FK_Sales_Report"."product_id" AS "Combined_ASIN_ProductID",
-            "public"."FK_Sales_Report"."gmv" AS "Combined_GMV_Gross_Price",
+            "public"."Flipkart_Earnings_Report"."sku_id" AS SKU,
+            "public"."Flipkart_Earnings_Report"."gross_units" AS gross_units,
+            "Flipkart_Pricing_Tracker"."Title" AS "New Title",
+            "public"."Flipkart_Earnings_Report"."unique_id" AS unique_id,
+            "public"."Flipkart_Earnings_Report"."brand" AS brand,
+            "Flipkart_Pricing_Tracker"."Unicommerce SKU ID" AS "Unicommerce SKU ID",
+            "public"."Flipkart_Earnings_Report"."product_id" AS "Combined_ASIN_ProductID",
+            "public"."Flipkart_Earnings_Report"."gmv" AS "Combined_GMV_Gross_Price",
             'Flipkart' AS "Platform"
           FROM
-            "public"."FK_Sales_Report"
-            LEFT JOIN "public"."fk_data" AS "Fk Data - Sku" ON "public"."FK_Sales_Report"."sku_id" = "Fk Data - Sku"."FK SKU ID"
+            "public"."Flipkart_Earnings_Report"
+            LEFT JOIN "public"."Flipkart_Pricing_Tracker" AS "Flipkart_Pricing_Tracker" ON "public"."Flipkart_Earnings_Report"."sku_id" = "Flipkart_Pricing_Tracker"."FK SKU ID"
         ) AS combined
       LIMIT
         1048575
